@@ -1,0 +1,16 @@
+{
+  "name": "style-finder-figma-plugin",
+  "version": "1.0.0",
+  "description": "Figma plugin to audit local style coverage in main components",
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.104.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0"
+  },
+  "private": true
+}

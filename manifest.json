@@ -1,0 +1,13 @@
+{
+  "name": "Style Finder",
+  "id": "style-finder-local-style-coverage",
+  "api": "1.0.0",
+  "main": "dist/plugin.js",
+  "ui": "dist/ui.html",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "enablePrivatePluginApi": true,
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  }
+}
