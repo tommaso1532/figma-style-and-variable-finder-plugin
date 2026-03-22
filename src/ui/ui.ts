@@ -42,6 +42,7 @@ const state: AppState = {
 // and are silently dropped, preventing accidental re-scans.
 let scanGeneration = 0;
 let pendingDeepLinkBtn: HTMLElement | null = null;
+let bannerDismissed = false;
 
 // ─── DOM references ────────────────────────────────────────────────────────
 
@@ -64,6 +65,9 @@ const elements = {
   resultSearchBtn: document.getElementById('result-search-btn') as HTMLButtonElement,
   deselectAllBtn: document.getElementById('deselect-all-btn') as HTMLButtonElement,
   toast: document.getElementById('toast') as HTMLDivElement,
+  coffeeBanner: document.getElementById('coffee-banner') as HTMLDivElement,
+  coffeeLink: document.getElementById('coffee-link') as HTMLButtonElement,
+  coffeeDismiss: document.getElementById('coffee-dismiss') as HTMLButtonElement,
 };
 
 // ─── Initialize ────────────────────────────────────────────────────────────
@@ -71,7 +75,40 @@ const elements = {
 function init(): void {
   setupMessageHandler();
   bindEvents();
+  initResizeHandle();
   sendToPlugin({ type: 'load-styles' });
+}
+
+function initResizeHandle(): void {
+  const handle = document.getElementById('resize-handle') as HTMLElement;
+  const leftPanel = document.querySelector('.left-panel') as HTMLElement;
+
+  handle.addEventListener('mousedown', (e: MouseEvent) => {
+    const startX = e.clientX;
+    const startWidth = leftPanel.offsetWidth;
+    handle.classList.add('dragging');
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    const onMouseMove = (e: MouseEvent) => {
+      const newWidth = Math.max(160, Math.min(520, startWidth + e.clientX - startX));
+      leftPanel.style.width = `${newWidth}px`;
+      renderStyleList();
+      renderResults();
+    };
+
+    const onMouseUp = () => {
+      handle.classList.remove('dragging');
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    e.preventDefault();
+  });
 }
 
 function bindEvents(): void {
@@ -117,6 +154,16 @@ function bindEvents(): void {
     }
   });
   elements.deselectAllBtn.addEventListener('click', handleDeselectAll);
+
+  elements.coffeeDismiss.addEventListener('click', () => {
+    bannerDismissed = true;
+    elements.coffeeBanner.classList.remove('visible');
+  });
+
+  elements.coffeeLink.addEventListener('click', () => {
+    // Replace the URL below with your Buy Me a Coffee page
+    window.open('https://buymeacoffee.com/tommasodematte', '_blank');
+  });
 }
 
 // ─── Message handling ──────────────────────────────────────────────────────
@@ -148,6 +195,9 @@ function handlePluginMessage(msg: PluginToUIMessage): void {
       renderResults();
       updateScanButton();
       hideProgress();
+      if (!bannerDismissed) {
+        elements.coffeeBanner.classList.add('visible');
+      }
       break;
 
     case 'scan-cancelled':
@@ -420,6 +470,14 @@ function renderStyleList(): void {
     }
   }
 
+  const containerW = elements.styleList.offsetWidth || 280;
+  const ITEM_FONT = '400 12px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  const LABEL_FONT = '600 11px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  // item: padding(28) + checkbox(20) + gap(8) = 56px overhead
+  const nameMaxPx = Math.max(40, containerW - 56);
+  // header: padding(24) + icon(16) + gaps(16) + count(40) + chevron(16) = 112px overhead
+  const labelMaxPx = Math.max(40, containerW - 112);
+
   let html = '';
 
   for (const group of groups) {
@@ -431,7 +489,7 @@ function renderStyleList(): void {
     html += `<div class="style-group ${isCollapsed ? 'collapsed' : ''}" data-group-key="${escapeAttr(group.key)}">`;
     html += `<div class="style-group-header" data-group-key="${escapeAttr(group.key)}">`;
     html += `<span class="style-group-icon">${group.icon}</span>`;
-    html += `<span class="style-group-label">${escapeHtml(group.label)}</span>`;
+    html += `<span class="style-group-label" title="${escapeAttr(group.label)}">${escapeHtml(midTruncateToWidth(group.label, labelMaxPx, LABEL_FONT))}</span>`;
     html += `<span class="style-group-count">${selectedInGroup}/${group.items.length}</span>`;
     html += `<span class="accordion-chevron">&#9660;</span>`;
     html += `</div>`;
@@ -443,7 +501,7 @@ function renderStyleList(): void {
       const dataAttr = item.isVariable ? `data-var-id="${escapeAttr(item.id)}"` : `data-style-id="${escapeAttr(item.id)}"`;
       html += `<div class="style-item ${isSelected ? 'selected' : ''}" ${dataAttr}>`;
       html += `<div class="style-checkbox">${isSelected ? '&#10003;' : ''}</div>`;
-      html += `<div class="style-name" title="${escapeAttr(item.name)}">${escapeHtml(item.name)}</div>`;
+      html += `<div class="style-name" title="${escapeAttr(item.name)}">${escapeHtml(midTruncateToWidth(item.name, nameMaxPx, ITEM_FONT))}</div>`;
       html += `</div>`;
     }
 
@@ -520,12 +578,24 @@ function renderResults(): void {
   const copyIcon = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M3 8H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`;
   const linkIcon = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 6.5a3 3 0 0 0 4.243 0l1.414-1.414a3 3 0 0 0-4.243-4.243L5.707 2.05" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M7 5.5a3 3 0 0 0-4.243 0L1.343 6.914a3 3 0 0 0 4.243 4.243L6.293 9.95" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`;
 
+  // Pixel-accurate truncation widths based on live column sizes
+  const listW = elements.resultsList.offsetWidth || 580;
+  const contentW = listW - 24; // subtract row padding (12px each side)
+  // result-main: 160px fixed; result-actions: 160px fixed; 2 gaps: 16px
+  const matchesColW = Math.max(80, contentW - 160 - 160 - 16);
+  // result-style-name: matchesColW minus count(80) minus inner gap(8) minus padding-right(4)
+  const styleNameMaxPx = Math.max(40, matchesColW - 80 - 8 - 4);
+  // result-name: 160px minus copy-btn(20px) minus gap(4px)
+  const compNameMaxPx = 160 - 20 - 4;
+  const NAME_FONT = '500 12px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  const STYLE_FONT = '400 11px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
   let html = `<div class="results-column-header"><span class="col-name">Component name</span><span class="col-style">Style / Variable</span><span class="col-count">Instances</span><span class="col-actions"></span></div>`;
   for (const row of filtered) {
     html += `<div class="result-row" data-node-id="${escapeAttr(row.nodeId)}" data-page-id="${escapeAttr(row.pageId)}">`;
     html += `<div class="result-main">`;
     html += `<div class="result-name-row">`;
-    html += `<div class="result-name" title="${escapeAttr(row.nodeName)}">${escapeHtml(midTruncate(row.nodeName, 22))}</div>`;
+    html += `<div class="result-name" title="${escapeAttr(row.nodeName)}">${escapeHtml(midTruncateToWidth(row.nodeName, compNameMaxPx, NAME_FONT))}</div>`;
     html += `<button class="copy-name-btn" title="Copy component name" data-action="copy-name" data-name="${escapeAttr(row.nodeName)}">${copyIcon}</button>`;
     html += `</div>`;
     html += `<div class="result-page">${escapeHtml(row.pageName)}</div>`;
@@ -534,14 +604,14 @@ function renderResults(): void {
     for (const match of row.matches) {
       const cls = match.styleType === 'TEXT' ? 'style-text' : 'style-paint';
       html += `<div class="result-match-row">`;
-      html += `<div class="result-style-name ${cls}" title="${escapeAttr(match.styleName)}">${escapeHtml(midTruncate(match.styleName, 38))}</div>`;
+      html += `<div class="result-style-name ${cls}" title="${escapeAttr(match.styleName)}">${escapeHtml(midTruncateToWidth(match.styleName, styleNameMaxPx, STYLE_FONT))}</div>`;
       html += `<div class="result-count">${match.count}</div>`;
       html += `</div>`;
     }
     for (const match of row.variableMatches) {
       const cls = match.resolvedType === 'COLOR' ? 'style-var-color' : 'style-var-float';
       html += `<div class="result-match-row">`;
-      html += `<div class="result-style-name ${cls}" title="${escapeAttr(match.variableName)}">${escapeHtml(midTruncate(match.variableName, 38))}</div>`;
+      html += `<div class="result-style-name ${cls}" title="${escapeAttr(match.variableName)}">${escapeHtml(midTruncateToWidth(match.variableName, styleNameMaxPx, STYLE_FONT))}</div>`;
       html += `<div class="result-count">${match.count}</div>`;
       html += `</div>`;
     }
@@ -684,6 +754,31 @@ function midTruncate(str: string, maxLen: number): string {
   if (str.length <= maxLen) return str;
   const half = Math.floor((maxLen - 1) / 2);
   return str.slice(0, half) + '…' + str.slice(str.length - half);
+}
+
+// Canvas-based pixel-accurate middle truncation
+const _measureCanvas = document.createElement('canvas');
+const _measureCtx = _measureCanvas.getContext('2d')!;
+
+function midTruncateToWidth(str: string, maxPx: number, font: string): string {
+  _measureCtx.font = font;
+  if (_measureCtx.measureText(str).width <= maxPx) return str;
+  let lo = 0;
+  let hi = Math.floor((str.length - 1) / 2);
+  let best = '…';
+  while (lo <= hi) {
+    const half = (lo + hi) >> 1;
+    const candidate = half > 0
+      ? str.slice(0, half) + '…' + str.slice(str.length - half)
+      : '…';
+    if (_measureCtx.measureText(candidate).width <= maxPx) {
+      best = candidate;
+      lo = half + 1;
+    } else {
+      hi = half - 1;
+    }
+  }
+  return best;
 }
 
 // ─── Boot ──────────────────────────────────────────────────────────────────

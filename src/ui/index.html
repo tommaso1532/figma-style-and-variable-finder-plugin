@@ -52,10 +52,35 @@
     .left-panel {
       display: flex;
       flex-direction: column;
-      width: 320px;
-      min-width: 320px;
-      border-right: 1px solid var(--color-border);
+      width: 308px;
+      min-width: 160px;
       overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .resize-handle {
+      width: 5px;
+      cursor: col-resize;
+      flex-shrink: 0;
+      position: relative;
+      background: transparent;
+      transition: background 0.15s;
+    }
+
+    .resize-handle::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 2px;
+      width: 1px;
+      background: var(--color-border);
+      transition: background 0.15s;
+    }
+
+    .resize-handle:hover::after,
+    .resize-handle.dragging::after {
+      background: var(--color-brand);
     }
 
     .right-panel {
@@ -197,6 +222,9 @@
 
     .style-group-label {
       flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
     }
 
     .style-group-count {
@@ -243,7 +271,6 @@
       flex: 1;
       font-size: var(--font-size-sm);
       overflow: hidden;
-      text-overflow: ellipsis;
       white-space: nowrap;
     }
 
@@ -520,6 +547,9 @@
       flex: 1;
       min-width: 0;
       font-size: var(--font-size-xs);
+      white-space: nowrap;
+      overflow: hidden;
+      padding-right: 4px;
     }
 
     .style-paint, .style-text, .style-var-color, .style-var-float {
@@ -674,6 +704,81 @@
     }
 
     /* ─── Empty state (right panel placeholder) ──────────────────────── */
+    /* ─── Coffee banner ─────────────────────────────────────────────── */
+    .coffee-banner {
+      display: none;
+      position: relative;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--color-border);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-secondary);
+      flex-shrink: 0;
+      background: #1a3a5c;
+    }
+
+    .coffee-banner.visible {
+      display: flex;
+    }
+
+    .coffee-text {
+      color: #ffffff;
+    }
+
+    .coffee-btn {
+      background: #ffffff;
+      border: none;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      color: var(--color-brand);
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .coffee-btn:hover {
+      background: #f0f0f0;
+    }
+
+    .coffee-dismiss {
+      position: absolute;
+      top: 4px;
+      right: 6px;
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 13px;
+      border-radius: var(--radius-sm);
+      opacity: 0;
+      transition: opacity 0.15s 0s, background 0.1s;
+      line-height: 1;
+    }
+
+    .coffee-banner:hover .coffee-dismiss {
+      opacity: 1;
+      transition: opacity 0.15s 0.8s, background 0.1s;
+    }
+
+    /* Suppress X when hovering the button */
+    .coffee-btn:hover ~ .coffee-dismiss {
+      opacity: 0 !important;
+      transition: none !important;
+    }
+
+    .coffee-dismiss:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
     .results-empty-state {
       display: flex;
       align-items: center;
@@ -776,6 +881,9 @@
       </div>
     </div>
 
+    <!-- Resize handle -->
+    <div class="resize-handle" id="resize-handle"></div>
+
     <!-- ═══ Right panel: results ═══ -->
     <div class="right-panel">
       <!-- Empty state placeholder -->
@@ -804,6 +912,11 @@
               </svg>
             </button>
           </div>
+        </div>
+        <div id="coffee-banner" class="coffee-banner">
+          <span class="coffee-text">🤩 Enjoy the plugin?</span>
+          <button class="coffee-btn" id="coffee-link">Buy me a coffee</button>
+          <button class="coffee-dismiss" id="coffee-dismiss" title="Dismiss">×</button>
         </div>
         <div id="results-list" class="results-list"></div>
       </div>
