@@ -1,6 +1,7 @@
 # Style Finder — Figma Plugin
 
 Audit local style coverage across main components in your Figma file. Find which component sets use specific text and color styles, navigate to them, and copy deep links.
+This plugin is public on Figma Community.
 
 ## Setup
 
